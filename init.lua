@@ -559,6 +559,8 @@ require('lazy').setup({
       --  So, we create new capabilities with nvim cmp, and then broadcast that to the servers.
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+      --Enable (broadcasting) snippet capability for completion
+      capabilities.textDocument.completion.completionItem.snippetSupport = true
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -582,6 +584,17 @@ require('lazy').setup({
         -- But for many setups, the LSP (`tsserver`) will work just fine
         -- tsserver = {},
         --
+        html = {
+          filetypes = { 'html' },
+        },
+        htmx = {},
+        -- htmx = {
+        --   cmd = { 'htmx-lsp' },
+        --   filetypes = { 'htmx', 'html', 'templ' },
+        --   single_file_support = true,
+        -- },
+        cssls = {},
+        tailwindcss = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -596,6 +609,12 @@ require('lazy').setup({
               -- diagnostics = { disable = { 'missing-fields' } },
             },
           },
+        },
+      }
+
+      vim.filetype.add {
+        extension = {
+          html = 'html',
         },
       }
 
@@ -740,7 +759,7 @@ require('lazy').setup({
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
           --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<Tab>'] = cmp.mapping.select_next_item(),
           --['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
@@ -924,7 +943,7 @@ require('lazy').setup({
       --   number = 1,
       -- },
       filetype = {
-        go = 'go run',
+        go = 'go run *.go$end',
       },
     },
   },
@@ -944,6 +963,8 @@ require('lazy').setup({
   -- require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+
+  require 'custom.plugins.harpoon',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
