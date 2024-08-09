@@ -586,6 +586,8 @@ require('lazy').setup({
           settings = {
             gopls = {
               standaloneTags = { 'dev' },
+              completeUnimported = true,
+              usePlaceholders = true,
             },
           },
         },
@@ -600,7 +602,7 @@ require('lazy').setup({
         -- tsserver = {},
         --
         html = {
-          filetypes = { 'html' },
+          filetypes = { 'html', 'templ' },
         },
         htmx = {},
         -- htmx = {
