@@ -199,6 +199,10 @@ vim.keymap.set('n', '<leader>,m', function()
   vim.cmd ':%s/\r//g'
 end)
 
+vim.keymap.set('n', '<C-Tab>', '<cmd>bn<CR>', { desc = 'Next buffer' })
+vim.keymap.set('n', '<S-Tab>', '<cmd>bp<CR>', { desc = 'Previous buffer' })
+vim.keymap.set('n', '<C-q>', '<cmd>bd<CR>', { desc = 'Close buffer' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -765,8 +769,10 @@ require('lazy').setup({
         mapping = cmp.mapping.preset.insert {
           -- Select the [n]ext item
           ['<C-n>'] = cmp.mapping.select_next_item(),
+          ['<C-j>'] = cmp.mapping.select_next_item(),
           -- Select the [p]revious item
           ['<C-p>'] = cmp.mapping.select_prev_item(),
+          ['<C-k>'] = cmp.mapping.select_prev_item(),
 
           -- Scroll the documentation window [b]ack / [f]orward
           ['<C-b>'] = cmp.mapping.scroll_docs(-4),
@@ -779,8 +785,9 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.confirm { select = true },
+          -- ['<Tab>'] = cmp.mapping.select_next_item(),
           --['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
@@ -917,6 +924,7 @@ require('lazy').setup({
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
   },
+  'nvim-treesitter/nvim-treesitter-context',
   {
     'scalameta/nvim-metals',
     dependencies = {
@@ -1004,6 +1012,11 @@ require('lazy').setup({
     dependencies = { 'nvim-tree/nvim-web-devicons' },
 
     config = function()
+      -- Helper function for setting Obsession status in lualine; remove if not using vim-obsession
+      local function obsession_status()
+        return vim.fn.ObsessionStatus('', '')
+      end
+
       require('lualine').setup {
         options = {
           icons_enabled = true,
@@ -1013,8 +1026,8 @@ require('lazy').setup({
         sections = {
           lualine_x = {
             {
-              require('noice').api.statusline.mode.get,
-              cond = require('noice').api.statusline.mode.has,
+              require('noice').api.status.mode.get,
+              cond = require('noice').api.status.mode.has,
               color = { fg = '#ff9e64' },
             },
             {
@@ -1022,16 +1035,24 @@ require('lazy').setup({
               cond = require('noice').api.status.command.has,
               color = { fg = '#ff9e64' },
             },
+            obsession_status,
           },
           lualine_a = {
             {
               'buffers',
             },
           },
+          lualine_c = {
+            {
+              'filename',
+              path = 1,
+            },
+          },
         },
       }
     end,
   },
+  'tpope/vim-obsession',
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
@@ -1050,6 +1071,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   require 'custom.plugins.harpoon',
+  require 'custom.plugins.spider',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
