@@ -620,6 +620,9 @@ require('lazy').setup({
         -- },
         cssls = {},
         tailwindcss = {},
+        emmet_language_server = {
+          filetypes = { 'css', 'eruby', 'html', 'javascript', 'javascriptreact', 'less', 'sass', 'scss', 'pug', 'typescriptreact', 'templ' },
+        },
 
         lua_ls = {
           -- cmd = {...},
@@ -1100,6 +1103,22 @@ require('lazy').setup({
     },
   },
 })
+
+vim.api.nvim_create_user_command('DiffClip', function()
+  vim.cmd [[
+    let ft=&ft
+    leftabove vnew [Clipboard]
+    setlocal bufhidden=wipe buftype=nofile noswapfile
+    put +
+    0d_
+    " remove CR for Windows
+    silent %s/\r$//e
+    execute "set ft=" . ft
+    diffthis
+    wincmd p
+    diffthis
+  ]]
+end, { desc = 'Compare Active File with Clipboard' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
