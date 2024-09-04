@@ -356,7 +356,9 @@ require('lazy').setup({
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
-      require('telescope').setup {
+      local telescope = require 'telescope'
+      local actions = require 'telescope.actions'
+      telescope.setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
@@ -368,6 +370,12 @@ require('lazy').setup({
           --   mappings = {
           --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
           --   },
+          mappings = {
+            i = {
+              ['<C-j>'] = actions.move_selection_next,
+              ['<C-k>'] = actions.move_selection_previous,
+            },
+          },
         },
         pickers = {
           -- find_files = {
@@ -523,6 +531,7 @@ require('lazy').setup({
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
           map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction')
+          map('<leader>ck', vim.lsp.buf.hover, '[C]ode [K]Hover')
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
@@ -716,7 +725,9 @@ require('lazy').setup({
   },
 
   { -- Autocompletion
-    'hrsh7th/nvim-cmp',
+    -- 'hrsh7th/nvim-cmp',
+    'yioneko/nvim-cmp',
+    branch = 'perf',
     event = 'InsertEnter',
     dependencies = {
       -- Snippet Engine & its associated nvim-cmp source
@@ -927,7 +938,14 @@ require('lazy').setup({
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
   },
-  'nvim-treesitter/nvim-treesitter-context',
+  {
+    'nvim-treesitter/nvim-treesitter-context',
+    config = function()
+      require('treesitter-context').setup {
+        multiline_threshold = 5,
+      }
+    end,
+  },
   {
     'scalameta/nvim-metals',
     dependencies = {
@@ -939,7 +957,9 @@ require('lazy').setup({
 
       -- Example of settings
       metals_config.settings = {
-        showImplicitArguments = true,
+        showImplicitArguments = false,
+        showImplicitConversionsAndClasses = true,
+        showInferredType = true,
         excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
       }
 
