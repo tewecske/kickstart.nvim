@@ -170,7 +170,8 @@ vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>qq', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>qf', vim.diagnostic.open_float, { desc = 'Open diagnostic [Q]uickfix list [F]loating' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -952,12 +953,28 @@ require('lazy').setup({
       'nvim-lua/plenary.nvim',
     },
     ft = { 'scala', 'sbt', 'java' },
-    opts = function()
+    -- opts = function()
+    --   local metals_config = require('metals').bare_config()
+    --
+    --   -- Example of settings
+    --   metals_config.settings = {
+    --     showImplicitArguments = false,
+    --     showImplicitConversionsAndClasses = true,
+    --     showInferredType = true,
+    --     excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
+    --   }
+    --
+    --   metals_config.init_options.statusBarProvider = 'off'
+    --
+    --   metals_config.capabilities = require('cmp_nvim_lsp').default_capabilities()
+    --   return metals_config
+    -- end,
+    config = function()
       local metals_config = require('metals').bare_config()
 
       -- Example of settings
       metals_config.settings = {
-        showImplicitArguments = false,
+        showImplicitArguments = true,
         showImplicitConversionsAndClasses = true,
         showInferredType = true,
         excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
@@ -966,12 +983,10 @@ require('lazy').setup({
       metals_config.init_options.statusBarProvider = 'off'
 
       metals_config.capabilities = require('cmp_nvim_lsp').default_capabilities()
-      return metals_config
-    end,
-    config = function(self, metals_config)
+
       local nvim_metals_group = vim.api.nvim_create_augroup('nvim-metals', { clear = true })
       vim.api.nvim_create_autocmd('FileType', {
-        pattern = self.ft,
+        pattern = { 'scala', 'sbt', 'java' },
         callback = function()
           require('metals').initialize_or_attach(metals_config)
         end,
