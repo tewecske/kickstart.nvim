@@ -191,10 +191,10 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+-- vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+-- vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+-- vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 vim.keymap.set('n', '<leader>,m', function()
   vim.cmd ':%s/\r//g'
@@ -821,16 +821,16 @@ require('lazy').setup({
           --
           -- <c-l> will move you to the right of each of the expansion locations.
           -- <c-h> is similar, except moving you backwards.
-          ['<C-l>'] = cmp.mapping(function()
-            if luasnip.expand_or_locally_jumpable() then
-              luasnip.expand_or_jump()
-            end
-          end, { 'i', 's' }),
-          ['<C-h>'] = cmp.mapping(function()
-            if luasnip.locally_jumpable(-1) then
-              luasnip.jump(-1)
-            end
-          end, { 'i', 's' }),
+          -- ['<C-l>'] = cmp.mapping(function()
+          --   if luasnip.expand_or_locally_jumpable() then
+          --     luasnip.expand_or_jump()
+          --   end
+          -- end, { 'i', 's' }),
+          -- ['<C-h>'] = cmp.mapping(function()
+          --   if luasnip.locally_jumpable(-1) then
+          --     luasnip.jump(-1)
+          --   end
+          -- end, { 'i', 's' }),
 
           -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
           --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -963,7 +963,7 @@ require('lazy').setup({
     dependencies = {
       'nvim-lua/plenary.nvim',
     },
-    ft = { 'scala', 'sbt', 'java' },
+    ft = { 'scala', 'sc', 'sbt', 'java' },
     -- opts = function()
     --   local metals_config = require('metals').bare_config()
     --
@@ -985,6 +985,7 @@ require('lazy').setup({
 
       -- Example of settings
       metals_config.settings = {
+        defaultBspToBuildTool = true,
         showImplicitArguments = true,
         showImplicitConversionsAndClasses = true,
         showInferredType = true,
@@ -997,7 +998,7 @@ require('lazy').setup({
 
       local nvim_metals_group = vim.api.nvim_create_augroup('nvim-metals', { clear = true })
       vim.api.nvim_create_autocmd('FileType', {
-        pattern = { 'scala', 'sbt', 'java' },
+        pattern = { 'scala', 'sc', 'sbt', 'java' },
         callback = function()
           require('metals').initialize_or_attach(metals_config)
         end,
@@ -1028,34 +1029,34 @@ require('lazy').setup({
       },
     },
   },
-  {
-    'folke/noice.nvim',
-    config = function()
-      require('noice').setup {
-        -- add any options here
-        routes = {
-          {
-            filter = {
-              event = 'msg_show',
-              any = {
-                { find = '%d+L, %d+B' },
-                { find = '; after #%d+' },
-                { find = '; before #%d+' },
-                { find = '%d fewer lines' },
-                { find = '%d more lines' },
-              },
-            },
-            opts = { skip = true },
-          },
-        },
-      }
-    end,
-    dependencies = {
-      -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
-      'MunifTanjim/nui.nvim',
-      'rcarriga/nvim-notify',
-    },
-  },
+  -- {
+  --   'folke/noice.nvim',
+  --   config = function()
+  --     require('noice').setup {
+  --       -- add any options here
+  --       routes = {
+  --         {
+  --           filter = {
+  --             event = 'msg_show',
+  --             any = {
+  --               { find = '%d+L, %d+B' },
+  --               { find = '; after #%d+' },
+  --               { find = '; before #%d+' },
+  --               { find = '%d fewer lines' },
+  --               { find = '%d more lines' },
+  --             },
+  --           },
+  --           opts = { skip = true },
+  --         },
+  --       },
+  --     }
+  --   end,
+  --   dependencies = {
+  --     -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
+  --     'MunifTanjim/nui.nvim',
+  --     'rcarriga/nvim-notify',
+  --   },
+  -- },
   {
     'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -1074,16 +1075,16 @@ require('lazy').setup({
         },
         sections = {
           lualine_x = {
-            {
-              require('noice').api.status.mode.get,
-              cond = require('noice').api.status.mode.has,
-              color = { fg = '#ff9e64' },
-            },
-            {
-              require('noice').api.status.command.get,
-              cond = require('noice').api.status.command.has,
-              color = { fg = '#ff9e64' },
-            },
+            -- {
+            --   require('noice').api.status.mode.get,
+            --   cond = require('noice').api.status.mode.has,
+            --   color = { fg = '#ff9e64' },
+            -- },
+            -- {
+            --   require('noice').api.status.command.get,
+            --   cond = require('noice').api.status.command.has,
+            --   color = { fg = '#ff9e64' },
+            -- },
             obsession_status,
           },
           lualine_a = {
@@ -1102,6 +1103,7 @@ require('lazy').setup({
     end,
   },
   'tpope/vim-obsession',
+  { 'meznaric/key-analyzer.nvim', opts = {} },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
