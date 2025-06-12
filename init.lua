@@ -717,6 +717,8 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         templ = { 'templ' },
+        scala = { 'lsp' },
+        sbt = { 'lsp' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -989,6 +991,7 @@ require('lazy').setup({
         showImplicitArguments = true,
         showImplicitConversionsAndClasses = true,
         showInferredType = true,
+        scalafmtConfigPath = '.scalafmt.conf',
         excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
       }
 
@@ -1122,7 +1125,9 @@ require('lazy').setup({
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   require 'custom.plugins.harpoon',
-  require 'custom.plugins.spider',
+  require 'custom.plugins.fugitive',
+  require 'custom.plugins.copilot',
+  -- require 'custom.plugins.spider',
   -- require 'custom.plugins.debugger',
   -- require 'custom.plugins.luasnip',
 
