@@ -84,6 +84,10 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+-- disable netrw at the very start of your init.lua
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -203,6 +207,22 @@ end)
 vim.keymap.set('n', '<C-Tab>', '<cmd>bn<CR>', { desc = 'Next buffer' })
 vim.keymap.set('n', '<S-Tab>', '<cmd>bp<CR>', { desc = 'Previous buffer' })
 vim.keymap.set('n', '<C-q>', '<cmd>bd<CR>', { desc = 'Close buffer' })
+--
+-- Add empty lines before and after cursor line
+vim.keymap.set('n', '[<space>', "<Cmd>call append(line('.') - 1, repeat([''], v:count1))<CR>", { desc = 'Put empty line above' })
+vim.keymap.set('n', ']<space>', "<Cmd>call append(line('.'),     repeat([''], v:count1))<CR>", { desc = 'Put empty line below' })
+
+vim.keymap.set('v', '*', '"sy/<C-R>s<CR>', { desc = 'Search for visually selected' })
+-- vim.keymap.set('x', '<leader>*', '<cmd> Telescope grep_strings <CR>')
+-- vim.keymap.set('x', '<leader>*', function()
+--   require('telescope.builtin').grep_string()
+-- end, { desc = 'Search for visually selected in workspace' })
+vim.keymap.set(
+  'x',
+  '<leader>*',
+  '"zy<Cmd>lua require("telescope.builtin").grep_string({search=vim.fn.getreg("z")})<CR>',
+  { desc = 'Search for visually selected in workspace' }
+)
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -297,6 +317,7 @@ require('lazy').setup({
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
+        { '<leader>u', group = 'S[u]rround' },
         { '<leader>w', group = '[W]orkspace' },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
@@ -334,6 +355,7 @@ require('lazy').setup({
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      'kiyoon/telescope-insert-path.nvim',
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -359,6 +381,7 @@ require('lazy').setup({
       -- See `:help telescope` and `:help telescope.setup()`
       local telescope = require 'telescope'
       local actions = require 'telescope.actions'
+      local action_state = require 'telescope.actions.state'
       telescope.setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -367,6 +390,7 @@ require('lazy').setup({
           file_ignore_patterns = {
             'node_modules',
             '.git/',
+            'target/',
           },
           --   mappings = {
           --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
@@ -375,13 +399,26 @@ require('lazy').setup({
             i = {
               ['<C-j>'] = actions.move_selection_next,
               ['<C-k>'] = actions.move_selection_previous,
+              ['<C-]>'] = function(prompt_bufnr)
+                local selection = action_state.get_selected_entry()
+                actions.close(prompt_bufnr)
+                vim.api.nvim_put({ selection.filename }, '', false, true)
+              end,
             },
+          },
+          vimgrep_arguments = {
+            'rg',
+            '--color=never',
+            '--no-heading',
+            '--with-filename',
+            '--line-number',
+            '--column',
+            '--smart-case',
+            '--trim', -- trim indentations
           },
         },
         pickers = {
-          -- find_files = {
-          --   hidden = true,
-          -- },
+          hidden = true,
         },
         extensions = {
           ['ui-select'] = {
@@ -406,6 +443,25 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+
+      local function yank_inside_quotes()
+        vim.cmd 'normal! "fyi"'
+        local reg = vim.fn.getreg 'f'
+        if reg == '' then
+          vim.cmd 'normal! "fyi\''
+          reg = vim.fn.getreg 'f'
+        end
+        return reg
+      end
+
+      vim.keymap.set('n', '<leader>sc', function()
+        local text = yank_inside_quotes()
+        if text == '' then
+          return
+        end
+        local filename = vim.fn.getreg 'f'
+        builtin.find_files { default_text = filename }
+      end, { desc = '[S]earch path under [c]ursor inside quotes' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -806,7 +862,7 @@ require('lazy').setup({
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
           ['<CR>'] = cmp.mapping.confirm { select = true },
-          ['<Tab>'] = cmp.mapping.confirm { select = true },
+          -- ['<Tab>'] = cmp.mapping.confirm { select = true },
           -- ['<Tab>'] = cmp.mapping.select_next_item(),
           --['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
@@ -889,10 +945,22 @@ require('lazy').setup({
 
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
       --
-      -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-      -- - sd'   - [S]urround [D]elete [']quotes
-      -- - sr)'  - [S]urround [R]eplace [)] [']
-      require('mini.surround').setup()
+      -- - <leader>uaiw) - S[u]rround [A]dd [I]nner [W]ord [)]Paren
+      -- - <leader>ud'   - S[u]rround [D]elete [']quotes
+      -- - <leader>ur)'  - S[u]rround [R]eplace [)] [']
+      require('mini.surround').setup {
+        mappings = {
+          add = '<leader>ua', -- Add surrounding in Normal and Visual modes
+          delete = '<leader>ud', -- Delete surrounding
+          find = '<leader>uf', -- Find surrounding (to the right)
+          find_left = '<leader>uF', -- Find surrounding (to the left)
+          highlight = '<leader>uh', -- Highlight surrounding
+          replace = '<leader>ur', -- Replace surrounding
+
+          suffix_last = 'l', -- Suffix to search with "prev" method
+          suffix_next = 'n', -- Suffix to search with "next" method
+        },
+      }
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
@@ -1130,6 +1198,7 @@ require('lazy').setup({
   -- require 'custom.plugins.spider',
   -- require 'custom.plugins.debugger',
   -- require 'custom.plugins.luasnip',
+  require 'custom.plugins.nvim-tree',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
