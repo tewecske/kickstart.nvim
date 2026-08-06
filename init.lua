@@ -752,29 +752,34 @@ require('lazy').setup({
       {
         '<leader>f',
         function()
-          require('conform').format { async = true, lsp_fallback = true }
+          require('conform').format { async = true, lsp_format = 'fallback' }
         end,
         mode = '',
         desc = '[F]ormat buffer',
       },
     },
     opts = {
-      notify_on_error = false,
+      notify_on_error = true,
       format_on_save = function(bufnr)
-        -- Disable "format_on_save lsp_fallback" for languages that don't
-        -- have a well standardized coding style. You can add additional
-        -- languages here or re-enable it for the disabled ones.
+        local ft = vim.bo[bufnr].filetype
+        -- Disable LSP formatting for languages that don't have a well
+        -- standardized coding style. You can add additional languages here
+        -- or re-enable it for the disabled ones.
         local disable_filetypes = { c = true, cpp = true }
-        return {
-          timeout_ms = 500,
-          lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
-        }
+        if disable_filetypes[ft] then
+          return { timeout_ms = 500, lsp_format = 'never' }
+        end
+        -- Scala/sbt are formatted by Metals, which hosts scalafmt and reads
+        -- the workspace .scalafmt.conf. The first format of a workspace
+        -- downloads the scalafmt version pinned there, so give it headroom.
+        if ft == 'scala' or ft == 'sbt' then
+          return { timeout_ms = 10000, lsp_format = 'prefer' }
+        end
+        return { timeout_ms = 500, lsp_format = 'fallback' }
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
         templ = { 'templ' },
-        scala = { 'lsp' },
-        sbt = { 'lsp' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
