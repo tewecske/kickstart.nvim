@@ -6,8 +6,20 @@
 
 local metals_config = require('metals').bare_config()
 
+-- Build server: Bloop (Metals' default), NOT sbt.
+--
+-- `defaultBspToBuildTool = true` used to be set here, which routes Metals
+-- through sbt's own BSP server. sbt serves one BSP client at a time over a
+-- single socket (project/target/active.json), so a long-running `~fastLinkJS`
+-- or `~reStart` watch task blocks Metals indefinitely — an import hangs on
+-- buildTarget/dependencySources and eventually fails with MetalsBspException.
+--
+-- Bloop is a separate daemon, so watch tasks and the IDE stop contending. The
+-- cost is compiling twice (Bloop for the IDE, sbt for the watch) and Metals
+-- running `sbt bloopInstall` to export the build whenever build.sbt changes.
+--
+-- To go back, or if Metals remembers the wrong server: `:MetalsBspSwitch`.
 metals_config.settings = {
-  defaultBspToBuildTool = true,
   showImplicitArguments = true,
   showImplicitConversionsAndClasses = true,
   showInferredType = true,
