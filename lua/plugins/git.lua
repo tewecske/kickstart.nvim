@@ -41,28 +41,61 @@ end, { desc = '[G]it hunks to [Q]uickfix (this buffer)' })
 
 vim.keymap.set('n', '<leader>gs', vim.cmd.Git, { desc = '[G]it [s]tatus (fugitive)' })
 
-local function open_floating_git_diff()
-  local path = vim.fn.expand '%:p'
+local function git(cmd)
+  local handle = io.popen(cmd)
+  if handle == nil then
+    return ''
+  end
+  local result = handle:read '*a'
+  handle:close()
+  return result
+end
 
-  -- Get the git diff for the current file
-  local handle = io.popen('git diff -- ' .. vim.fn.shellescape(path))
-  local result = ''
-  if handle ~= nil then
-    result = handle:read '*a'
-    handle:close()
+-- Absolute paths of every file with unstaged changes, in git's own order.
+local function changed_files()
+  local root = vim.trim(git 'git rev-parse --show-toplevel')
+  local files = {}
+  for _, rel in ipairs(vim.split(git 'git diff --name-only', '\n')) do
+    if rel ~= '' then
+      table.insert(files, vim.fs.normalize(root .. '/' .. rel))
+    end
+  end
+  return files
+end
+
+-- Show files[idx] in the float, refreshing the title with the position.
+local function show_diff(win, buf, files, idx)
+  local path = files[idx]
+  local lines = vim.split(git('git diff -- ' .. vim.fn.shellescape(path)), '\n')
+
+  vim.api.nvim_set_option_value('modifiable', true, { buf = buf })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+
+  local config = vim.api.nvim_win_get_config(win)
+  config.title = string.format(' %s (%d/%d) ', vim.fn.fnamemodify(path, ':t'), idx, #files)
+  vim.api.nvim_win_set_config(win, config)
+  vim.api.nvim_win_set_cursor(win, { 1, 0 })
+end
+
+local function open_floating_git_diff()
+  local path = vim.fs.normalize(vim.fn.expand '%:p')
+
+  local files = changed_files()
+  local current = nil
+  for i, file in ipairs(files) do
+    if file == path then
+      current = i
+    end
   end
 
-  if result == '' then
+  if current == nil then
     print 'No changes found'
     return
   end
 
-  -- Split result into lines
-  local lines = vim.split(result, '\n')
-
-  -- Create scratch buffer
+  -- Create scratch buffer; show_diff fills it in once the window exists
   local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.api.nvim_set_option_value('filetype', 'diff', { buf = buf })
 
   -- Calculate dimensions
@@ -80,12 +113,25 @@ local function open_floating_git_diff()
     col = col,
     style = 'minimal',
     border = 'rounded',
-    title = ' ' .. vim.fn.fnamemodify(path, ':t') .. ' ',
+    title = '',
     title_pos = 'center',
   }
 
   -- Open floating window
-  vim.api.nvim_open_win(buf, true, opts)
+  local win = vim.api.nvim_open_win(buf, true, opts)
+
+  -- ]f / [f walk the other changed files, wrapping around at either end.
+  local function nav_file(step)
+    return function()
+      current = (current - 1 + step * vim.v.count1) % #files + 1
+      show_diff(win, buf, files, current)
+    end
+  end
+
+  vim.keymap.set('n', ']f', nav_file(1), { buffer = buf, desc = 'Next changed file' })
+  vim.keymap.set('n', '[f', nav_file(-1), { buffer = buf, desc = 'Previous changed file' })
+
+  show_diff(win, buf, files, current)
 end
 
 vim.api.nvim_create_user_command('GFloatDiff', open_floating_git_diff, {})
