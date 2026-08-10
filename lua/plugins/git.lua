@@ -42,8 +42,10 @@ end, { desc = '[G]it hunks to [Q]uickfix (this buffer)' })
 vim.keymap.set('n', '<leader>gs', vim.cmd.Git, { desc = '[G]it [s]tatus (fugitive)' })
 
 local function open_floating_git_diff()
+  local path = vim.fn.expand '%:p'
+
   -- Get the git diff for the current file
-  local handle = io.popen('git diff -- ' .. vim.fn.expand '%:p')
+  local handle = io.popen('git diff -- ' .. vim.fn.shellescape(path))
   local result = ''
   if handle ~= nil then
     result = handle:read '*a'
@@ -78,6 +80,8 @@ local function open_floating_git_diff()
     col = col,
     style = 'minimal',
     border = 'rounded',
+    title = ' ' .. vim.fn.fnamemodify(path, ':t') .. ' ',
+    title_pos = 'center',
   }
 
   -- Open floating window
