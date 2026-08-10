@@ -51,36 +51,37 @@ local function git(cmd)
   return result
 end
 
+-- Command output as buffer lines, without the trailing newline's empty line.
+local function lines_of(output)
+  local lines = vim.split(output, '\n')
+  if lines[#lines] == '' then
+    table.remove(lines)
+  end
+  return lines
+end
+
+local function repo_root()
+  return vim.fs.normalize(vim.trim(git 'git rev-parse --show-toplevel'))
+end
+
 -- Absolute paths of every file with unstaged changes, in git's own order.
 local function changed_files()
-  local root = vim.trim(git 'git rev-parse --show-toplevel')
+  local root = repo_root()
   local files = {}
-  for _, rel in ipairs(vim.split(git 'git diff --name-only', '\n')) do
-    if rel ~= '' then
-      table.insert(files, vim.fs.normalize(root .. '/' .. rel))
-    end
+  for _, rel in ipairs(lines_of(git 'git diff --name-only')) do
+    table.insert(files, vim.fs.normalize(root .. '/' .. rel))
   end
   return files
 end
 
--- Show files[idx] in the float, refreshing the title with the position.
-local function show_diff(win, buf, files, idx)
-  local path = files[idx]
-  local lines = vim.split(git('git diff -- ' .. vim.fn.shellescape(path)), '\n')
-
-  vim.api.nvim_set_option_value('modifiable', true, { buf = buf })
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
-
-  local config = vim.api.nvim_win_get_config(win)
-  config.title = string.format(' %s (%d/%d) ', vim.fn.fnamemodify(path, ':t'), idx, #files)
-  vim.api.nvim_win_set_config(win, config)
-  vim.api.nvim_win_set_cursor(win, { 1, 0 })
-end
-
+-- A floating view of `git diff`, in one of two shapes: a unified diff in a
+-- single float, or index and working tree in two floats sharing that span,
+-- driven by Vim's own diff mode. ]f / [f walk the changed files in either
+-- shape, s switches between them, q closes the whole thing.
 local function open_floating_git_diff()
   local path = vim.fs.normalize(vim.fn.expand '%:p')
 
+  local root = repo_root()
   local files = changed_files()
   local current = nil
   for i, file in ipairs(files) do
@@ -94,44 +95,115 @@ local function open_floating_git_diff()
     return
   end
 
-  -- Create scratch buffer; show_diff fills it in once the window exists
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_set_option_value('filetype', 'diff', { buf = buf })
-
   -- Calculate dimensions
   local width = math.floor(vim.o.columns * 0.8)
   local height = math.floor(vim.o.lines * 0.8)
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
-  -- Window configuration
-  local opts = {
-    relative = 'editor',
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    style = 'minimal',
-    border = 'rounded',
-    title = '',
-    title_pos = 'center',
-  }
+  local side_by_side = false
+  local wins = {}
+  local closing = false
 
-  -- Open floating window
-  local win = vim.api.nvim_open_win(buf, true, opts)
-
-  -- ]f / [f walk the other changed files, wrapping around at either end.
-  local function nav_file(step)
-    return function()
-      current = (current - 1 + step * vim.v.count1) % #files + 1
-      show_diff(win, buf, files, current)
+  local function close()
+    closing = true
+    for _, win in ipairs(wins) do
+      if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_close(win, true)
+      end
     end
+    wins = {}
+    closing = false
   end
 
-  vim.keymap.set('n', ']f', nav_file(1), { buffer = buf, desc = 'Next changed file' })
-  vim.keymap.set('n', '[f', nav_file(-1), { buffer = buf, desc = 'Previous changed file' })
+  local show -- redraws the view for files[current]; defined below
 
-  show_diff(win, buf, files, current)
+  local function scratch(lines, filetype)
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    vim.api.nvim_set_option_value('filetype', filetype, { buf = buf })
+    vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+
+    -- Wrap around at either end of the file list.
+    local function nav(step)
+      return function()
+        current = (current - 1 + step * vim.v.count1) % #files + 1
+        show()
+      end
+    end
+
+    vim.keymap.set('n', '<C-j>', nav(1), { buffer = buf, desc = 'Next changed file' })
+    vim.keymap.set('n', '<C-k>', nav(-1), { buffer = buf, desc = 'Previous changed file' })
+    vim.keymap.set('n', 's', function()
+      side_by_side = not side_by_side
+      show()
+    end, { buffer = buf, desc = 'Toggle side-by-side diff' })
+    vim.keymap.set('n', 'q', close, { buffer = buf, desc = 'Close diff' })
+
+    return buf
+  end
+
+  local function float(buf, opts)
+    local win = vim.api.nvim_open_win(
+      buf,
+      true,
+      vim.tbl_extend('force', {
+        relative = 'editor',
+        row = row,
+        height = height,
+        style = 'minimal',
+        border = 'rounded',
+        title_pos = 'center',
+      }, opts)
+    )
+    table.insert(wins, win)
+
+    -- Closing one half of the side-by-side view takes the other half with it.
+    vim.api.nvim_create_autocmd('WinClosed', {
+      pattern = tostring(win),
+      once = true,
+      callback = function()
+        if not closing then
+          close()
+        end
+      end,
+    })
+
+    return win
+  end
+
+  function show()
+    close()
+
+    local file = files[current]
+    local title = string.format(' %s (%d/%d) ', vim.fn.fnamemodify(file, ':t'), current, #files)
+
+    if not side_by_side then
+      local diff = lines_of(git('git diff -- ' .. vim.fn.shellescape(file)))
+      float(scratch(diff, 'diff'), { width = width, col = col, title = title })
+      return
+    end
+
+    -- Two floats fit in the single float's span once each border's two
+    -- columns are paid for.
+    local left_width = math.floor((width - 2) / 2)
+    local filetype = vim.filetype.match { filename = file } or ''
+    local relative = file:sub(#root + 2)
+
+    local index = lines_of(git('git show ' .. vim.fn.shellescape(':' .. relative)))
+    local worktree = vim.fn.filereadable(file) == 1 and vim.fn.readfile(file) or {}
+
+    float(scratch(index, filetype), { width = left_width, col = col, title = ' index ' })
+    vim.cmd.diffthis()
+    float(scratch(worktree, filetype), {
+      width = width - 2 - left_width,
+      col = col + left_width + 2,
+      title = title,
+    })
+    vim.cmd.diffthis()
+  end
+
+  show()
 end
 
 vim.api.nvim_create_user_command('GFloatDiff', open_floating_git_diff, {})
