@@ -41,7 +41,7 @@ require('lualine').setup {
 
 require('nvim-tree').setup {
   view = {
-    width = 40,
+    width = 35,
     side = 'left',
     number = false,
     relativenumber = false,
