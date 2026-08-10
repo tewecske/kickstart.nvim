@@ -40,3 +40,49 @@ vim.keymap.set('n', '<leader>gQ', function()
 end, { desc = '[G]it hunks to [Q]uickfix (this buffer)' })
 
 vim.keymap.set('n', '<leader>gs', vim.cmd.Git, { desc = '[G]it [s]tatus (fugitive)' })
+
+local function open_floating_git_diff()
+  -- Get the git diff for the current file
+  local handle = io.popen('git diff -- ' .. vim.fn.expand '%:p')
+  local result = ''
+  if handle ~= nil then
+    result = handle:read '*a'
+    handle:close()
+  end
+
+  if result == '' then
+    print 'No changes found'
+    return
+  end
+
+  -- Split result into lines
+  local lines = vim.split(result, '\n')
+
+  -- Create scratch buffer
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.api.nvim_set_option_value('filetype', 'diff', { buf = buf })
+
+  -- Calculate dimensions
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  -- Window configuration
+  local opts = {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+  }
+
+  -- Open floating window
+  vim.api.nvim_open_win(buf, true, opts)
+end
+
+vim.api.nvim_create_user_command('GFloatDiff', open_floating_git_diff, {})
+vim.keymap.set('n', '<leader>gd', vim.cmd.GFloatDiff, { desc = '[G]it [D]iff (float)' })

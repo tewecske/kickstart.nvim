@@ -22,6 +22,9 @@ vim.lsp.enable {
   'emmet_language_server',
 }
 
+vim.diagnostic.config { virtual_text = true }
+vim.cmd 'set completeopt+=noselect'
+
 -- Metals attaches itself for scala/sbt/java, see lua/plugins/metals.lua.
 
 vim.api.nvim_create_autocmd('LspAttach', {
