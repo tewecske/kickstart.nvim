@@ -68,7 +68,6 @@ vim.o.pummaxwidth = 60
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 vim.keymap.set('n', '<leader>qq', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-vim.keymap.set('n', '<leader>qf', vim.diagnostic.open_float, { desc = 'Open diagnostic [Q]uickfix list [F]loating' })
 
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
@@ -190,6 +189,9 @@ vim.pack.add {
   -- misc
   gh 'tpope/vim-fugitive',
   { src = gh 'github/copilot.vim', version = 'release' },
+
+  -- picker / explorer / terminal / misc utilities
+  gh 'folke/snacks.nvim',
 }
 
 require 'plugins.ui'
@@ -200,6 +202,7 @@ require 'plugins.metals'
 require 'plugins.dap'
 require 'plugins.git'
 require 'plugins.harpoon'
+require 'plugins.snacks'
 -- copilot.vim needs no setup call, being on the runtimepath is enough.
 
 -- [[ Commands ]]
