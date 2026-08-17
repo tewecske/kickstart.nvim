@@ -4,6 +4,35 @@
 
 local snacks = require 'snacks'
 
+-- Neovim 0.12 builtin autocomplete (`vim.o.autocomplete`) opens a completion
+-- popup in the picker input and suppresses its TextChangedI filter handler,
+-- breaking live filtering. Disable it for the picker input buffer.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'snacks_picker_input',
+  callback = function()
+    vim.bo.autocomplete = false
+  end,
+})
+
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('snacks-lsp-attach', { clear = true }),
+  callback = function(event)
+    local client = vim.lsp.get_client_by_id(event.data.client_id)
+    if not client then
+      return
+    end
+
+    local map = function(keys, func, desc)
+      vim.keymap.set('n', keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
+    end
+
+    map('gd', snacks.picker.lsp_definitions, '[G]oto [D]efinition')
+    map('gr', snacks.picker.lsp_references, '[G]oto [R]eferences')
+    map('gI', snacks.picker.lsp_implementations, '[G]oto [I]mplementation')
+    map('<leader>D', snacks.picker.lsp_type_definitions, 'Type [D]efinition')
+  end,
+})
+
 -- Custom picker layouts. Registered on the shared layouts table before setup.
 local layouts = require 'snacks.picker.config.layouts'
 layouts.full_horiz = {
@@ -51,12 +80,10 @@ snacks.setup {
   },
   picker = {
     sources = {
-      gh_issue = {},
-      gh_pr = {},
       explorer = {
         layout = {
           layout = {
-            position = 'right',
+            position = 'left',
           },
         },
       },
@@ -72,9 +99,6 @@ snacks.setup {
       input = {
         keys = {
           ['<Esc>'] = { 'close', mode = 'i' },
-          ['<C-w>'] = { '<c-s-w>', mode = { 'i' }, expr = true, desc = 'delete word' },
-          ['<C-i>'] = { 'toggle_ignored', mode = { 'i', 'n' } },
-          ['<C-h>'] = { 'toggle_hidden', mode = { 'i', 'n' } },
           ['<C-k>'] = { 'preview_scroll_up', mode = { 'i', 'n' } },
           ['<C-j>'] = { 'preview_scroll_down', mode = { 'i', 'n' } },
         },
@@ -129,61 +153,76 @@ local function map(mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { desc = desc })
 end
 
-map('n', '<leader>mr', pick('files', { root = false }), 'Find Files (cwd)')
-map('n', '<leader>ms', pick 'files', 'Find Files (Root Dir)')
-map('n', '<leader>mt', function()
-  pick('files', { cwd = buffer_dir() })()
-end, 'Find Files (Buffer dir)')
+-- files
+map('n', '<leader>sf', pick('files', { root = false }), 'Find Files (cwd)')
+map('n', '<leader>sF', pick 'files', 'Find Files (Root Dir)')
+-- map('n', '<leader>mt', function()
+-- pick('files', { cwd = buffer_dir() })()
+-- end, 'Find Files (Buffer dir)')
 
-map('n', '<leader><space>r', pick('live_grep', { root = false }), 'Grep (cwd)')
-map('n', '<leader><space>s', pick 'live_grep', 'Grep (Root Dir)')
-map('n', '<leader><space>t', function()
-  pick('live_grep', { cwd = buffer_dir() })()
-end, 'Grep (Buffer dir)')
+-- grep
+map('n', '<leader>sg', pick('live_grep', { root = false }), 'Grep (cwd)')
+map('n', '<leader>sG', pick 'live_grep', 'Grep (Root Dir)')
+-- map('n', '<leader><space>t', function()
+-- pick('live_grep', { cwd = buffer_dir() })()
+-- end, 'Grep (Buffer dir)')
 
-map({ 'n', 'x' }, '<leader>R', pick('grep_word', { root = false }), 'Visual selection or word (cwd)')
-map({ 'n', 'x' }, '<leader>S', pick 'grep_word', 'Visual selection or word (Root Dir)')
+-- word / selection
+map('n', '<leader>sw', pick('grep_word', { root = false }), 'Word under cursor (cwd)')
+map('x', '<leader>*', pick('grep_word', { root = false }), 'Search visual selection')
+map({ 'n', 'x' }, '<leader>sW', pick 'grep_word', 'Word or selection (Root Dir)')
 map('n', '<leader>T', function()
   pick('grep_word', { cwd = buffer_dir() })()
 end, 'Word (Buffer dir)')
 
-map('n', '<leader>mv', function()
-  snacks.picker.smart()
-end, 'Smart picker')
-map('n', '<leader>mb', function()
-  snacks.picker.buffers()
-end, 'Buffers')
-map('n', '<leader>H', function()
+map('n', '<leader>sh', function()
   snacks.picker.help()
 end, 'Help Pages')
-map('n', '<leader>mq', function()
-  snacks.picker.commands()
-end, 'Commands')
-map('n', '<leader>mn', function()
-  snacks.picker.notifications()
-end, 'Notification History')
-map('n', '<leader>mj', function()
-  snacks.picker.jumps()
-end, 'Jumps')
-map('n', '<leader>mm', function()
+map('n', '<leader>sk', function()
+  snacks.picker.keymaps()
+end, 'Keymaps')
+map('n', '<leader>sd', function()
+  snacks.picker.diagnostics()
+end, 'Diagnostics')
+map('n', '<leader>sr', function()
   snacks.picker.resume()
 end, 'Resume')
-map('n', '<leader>mu', function()
+map('n', '<leader>s.', function()
+  snacks.picker.recent()
+end, 'Recent Files')
+map('n', '<leader><leader>', function()
+  snacks.picker.buffers()
+end, 'Buffers')
+
+-- other pickers
+map('n', '<leader>ss', function()
+  snacks.picker.smart()
+end, 'Smart picker')
+map('n', '<leader>sc', function()
+  snacks.picker.commands()
+end, 'Commands')
+map('n', '<leader>sn', function()
+  snacks.picker.notifications()
+end, 'Notification History')
+map('n', '<leader>sy', function()
+  snacks.picker.jumps()
+end, 'Jumps')
+map('n', '<leader>su', function()
   snacks.picker.undo()
 end, 'Undo tree')
-map('n', '<leader>ml', function()
+map('n', '<leader>sl', function()
   snacks.picker.loclist()
 end, 'Location List')
 map('n', '<leader>qf', function()
   snacks.picker.qflist()
 end, 'Quickfix List')
-map('n', '<leader>mi', function()
+map('n', '<leader>sI', function()
   snacks.picker.icons()
 end, 'Icons')
-map('n', '<leader>mp', function()
+map('n', '<leader>sp', function()
   snacks.picker.projects()
 end, 'Projects')
-map('n', '<leader>mh', function()
+map('n', '<leader>sH', function()
   snacks.picker.highlights()
 end, 'Highlights')
 
@@ -194,12 +233,6 @@ end, 'LSP Symbols')
 map('n', '<leader>O', function()
   snacks.picker.lsp_workspace_symbols()
 end, 'LSP Workspace Symbols')
-map('n', '<leader>i', function()
-  snacks.picker.diagnostics()
-end, 'Diagnostics')
-map('n', '<leader>mk', function()
-  snacks.picker.keymaps()
-end, 'Keymaps')
 
 -- git
 map('n', '<leader>gc', function()
@@ -221,5 +254,5 @@ map('n', '<leader>E', function()
 end, 'Explorer Snacks (cwd)')
 
 require('which-key').add {
-  { '<leader>m', group = 'Picker' },
+  { '<leader>s', group = 'Picker' },
 }

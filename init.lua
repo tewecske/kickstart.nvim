@@ -129,73 +129,54 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 -- every plugin below is cloned and sourced at startup, in this order, so
 -- shared dependencies have to come first.
 
-local gh = function(repo)
+GH = function(repo)
   return 'https://github.com/' .. repo
 end
 
--- Build steps replace lazy.nvim's `build = `. Registered before add() so it
--- also fires on the very first install.
-vim.api.nvim_create_autocmd('PackChanged', {
-  group = vim.api.nvim_create_augroup('my-pack-build', { clear = true }),
-  callback = function(ev)
-    if ev.data.kind ~= 'install' and ev.data.kind ~= 'update' then
-      return
-    end
-    if ev.data.spec.name == 'telescope-fzf-native.nvim' then
-      vim.notify 'Building telescope-fzf-native...'
-      vim.system({ 'make' }, { cwd = ev.data.path }):wait()
-    end
-  end,
-})
-
 vim.pack.add {
   -- shared dependencies, first
-  gh 'nvim-lua/plenary.nvim',
-  gh 'nvim-neotest/nvim-nio',
+  GH 'nvim-lua/plenary.nvim',
+  GH 'nvim-neotest/nvim-nio',
 
   -- ui
   -- The repo is literally named "nvim", so without an explicit name it lands
   -- in a directory called "nvim" among the plugins. Same reason lazy-lock.json
   -- used to have a bare "nvim" entry.
-  { src = gh 'catppuccin/nvim', name = 'catppuccin' },
-  gh 'folke/which-key.nvim',
-  gh 'lewis6991/gitsigns.nvim',
-  gh 'nvim-lualine/lualine.nvim',
-  gh 'nvim-tree/nvim-tree.lua',
-  gh 'echasnovski/mini.nvim',
+  { src = GH 'catppuccin/nvim', name = 'catppuccin' },
+  GH 'folke/which-key.nvim',
+  GH 'lewis6991/gitsigns.nvim',
+  GH 'nvim-lualine/lualine.nvim',
+  GH 'echasnovski/mini.nvim',
 
   -- finding things
-  gh 'nvim-telescope/telescope.nvim',
-  gh 'nvim-telescope/telescope-fzf-native.nvim',
-  gh 'nvim-telescope/telescope-ui-select.nvim',
-  gh 'kiyoon/telescope-insert-path.nvim',
-  { src = gh 'ThePrimeagen/harpoon', version = 'harpoon2' },
+  { src = GH 'ThePrimeagen/harpoon', version = 'harpoon2' },
 
   -- syntax. `main` is the only branch supporting 0.12; `master` is frozen and
   -- its nvim-treesitter.configs API does not exist here.
-  { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' },
-  gh 'nvim-treesitter/nvim-treesitter-context',
+  { src = GH 'nvim-treesitter/nvim-treesitter', version = 'main' },
+  GH 'nvim-treesitter/nvim-treesitter-context',
 
   -- lsp. No nvim-lspconfig: server configs are in lsp/ in this repo.
-  gh 'folke/lazydev.nvim',
-  gh 'Bilal2453/luvit-meta',
-  gh 'scalameta/nvim-metals',
+  GH 'folke/lazydev.nvim',
+  GH 'Bilal2453/luvit-meta',
+  GH 'scalameta/nvim-metals',
 
   -- debugging
-  gh 'mfussenegger/nvim-dap',
-  gh 'rcarriga/nvim-dap-ui',
-  gh 'leoluz/nvim-dap-go',
+  GH 'mfussenegger/nvim-dap',
+  GH 'rcarriga/nvim-dap-ui',
+  GH 'leoluz/nvim-dap-go',
 
   -- misc
-  gh 'tpope/vim-fugitive',
-  { src = gh 'github/copilot.vim', version = 'release' },
+  GH 'tpope/vim-fugitive',
+  { src = GH 'github/copilot.vim', version = 'release' },
 
   -- picker / explorer / terminal / misc utilities
-  gh 'folke/snacks.nvim',
+  GH 'folke/snacks.nvim',
 }
 
 require 'plugins.ui'
-require 'plugins.telescope'
+-- require 'plugins.telescope'
+-- require 'plugins.nvimtree'
 require 'plugins.treesitter'
 require 'plugins.lsp'
 require 'plugins.metals'

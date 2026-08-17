@@ -39,18 +39,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
       vim.keymap.set('n', keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
     end
 
-    -- Only the pickers are mapped here. These are already global defaults in
-    -- 0.12 and were deleted from this config: grn rename, gra code action,
-    -- grx codelens run, gri implementation, grt type definition, gO document
-    -- symbol, K hover, i_CTRL-S signature help. See `:h lsp-defaults`.
-    local builtin = require 'telescope.builtin'
-    map('gd', builtin.lsp_definitions, '[G]oto [D]efinition')
-    map('gr', builtin.lsp_references, '[G]oto [R]eferences')
-    map('gI', builtin.lsp_implementations, '[G]oto [I]mplementation')
-    map('<leader>D', builtin.lsp_type_definitions, 'Type [D]efinition')
-    map('<leader>ds', builtin.lsp_document_symbols, '[D]ocument [S]ymbols')
-    map('<leader>ws', builtin.lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
-
     -- Insert-mode completion driven by the server, through Nvim's builtin
     -- completion machinery. Replaces nvim-cmp + cmp-nvim-lsp.
     if client:supports_method(vim.lsp.protocol.Methods.textDocument_completion) then
