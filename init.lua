@@ -88,9 +88,12 @@ vim.keymap.set('n', '<leader>,m', function()
   vim.cmd ':%s/\r//g'
 end, { desc = 'Strip carriage returns' })
 
+vim.keymap.set('n', '<C-s>', '<cmd>wa<CR>', { desc = 'Save all files' })
+
 vim.keymap.set('n', '<C-Tab>', '<cmd>bn<CR>', { desc = 'Next buffer' })
 vim.keymap.set('n', '<S-Tab>', '<cmd>bp<CR>', { desc = 'Previous buffer' })
 vim.keymap.set('n', '<C-q>', '<cmd>bd<CR>', { desc = 'Close buffer' })
+vim.keymap.set('n', '<M-q>', '<cmd>qa<CR>', { desc = 'Quit all' })
 
 -- Add empty lines before and after cursor line
 vim.keymap.set('n', '[<space>', "<Cmd>call append(line('.') - 1, repeat([''], v:count1))<CR>", { desc = 'Put empty line above' })
